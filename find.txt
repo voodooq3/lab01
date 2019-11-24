@@ -1,0 +1,1 @@
+find /var/log/ -mtime +14
