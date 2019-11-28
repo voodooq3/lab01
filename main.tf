@@ -22,6 +22,7 @@ resource "aws_instance" "lab01" {
   delete_on_termination = true 
   }
   vpc_security_group_ids = ["${aws_security_group.lab01SecurityGroup.id}"]
+  
   # user_data = file("update.sh")
 
 #--- provisioner ---#
@@ -29,7 +30,8 @@ connection {
     type     = "ssh"
     user     = "centos"
     private_key = "${file("voodookey.pem")}"
-    host     = "${aws_instance.lab01.public_ip}"
+    # host     = "${aws_instance.lab01.public_ip}"
+    host     =  self.public_ip
     }
   provisioner "remote-exec" {
     inline = [
