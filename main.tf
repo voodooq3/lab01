@@ -31,7 +31,8 @@ connection {
     user     = "centos"
     private_key = "${file("voodookey.pem")}"
     # host     = "${aws_instance.lab01.public_ip}"
-    host     =  self.public_ip
+    # host     =  self.public_ip
+    host       = "${self.public_ip}"
     }
   provisioner "remote-exec" {
     inline = [
