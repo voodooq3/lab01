@@ -14,12 +14,29 @@ data "aws_ami" "centos" {
 }
 
 #------- resource -------#
-#--- instance ---#
 resource "aws_instance" "lab01" {
   ami                    = "${data.aws_ami.centos.id}"
   instance_type          = "t2.micro"
-  key_name               = "voodoo.aws.public"
-  vpc_security_group_ids = [aws_security_group.lab01SecurityGroup.id]
+  key_name               = "voodoo.key"
+  root_block_device {
+  delete_on_termination = true 
+  }
+  vpc_security_group_ids = ["${aws_security_group.lab01SecurityGroup.id}"]
+  # user_data = file("update.sh")
+
+#--- provisioner ---#
+connection {
+    type     = "ssh"
+    user     = "centos"
+    private_key = "${file("voodookey.pem")}"
+    host     = "${aws_instance.lab01.public_ip}"
+    }
+  provisioner "remote-exec" {
+    inline = [
+      "sudo yum update -y"
+    ]
+  }
+  
   tags = {
     Name    = "Lab01Name"
     Project = "Lab01Project"
