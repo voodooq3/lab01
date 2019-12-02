@@ -12,7 +12,6 @@ data "aws_ami" "centos" {
   }
   owners = ["679593333241"]
 }
-
 #------- resource -------#
 resource "aws_instance" "lab01" {
   ami                    = "${data.aws_ami.centos.id}"
@@ -23,34 +22,78 @@ resource "aws_instance" "lab01" {
   }
   vpc_security_group_ids = ["${aws_security_group.lab01SecurityGroup.id}"]
   
-  # user_data = file("update.sh")
+ #--- example of using user_data ---#
+ # user_data = file("./files/update.sh")
 
 #--- provisioner ---#
 connection {
     type     = "ssh"
     user     = "centos"
-    private_key = "${file("voodookey.pem")}"
+    # private_key = "${file("./key/voodookey.pem")}"
+    private_key = "${file(var.private_key_path)}"
     # host     = "${aws_instance.lab01.public_ip}"
-    # host     =  self.public_ip
-    host       = "${self.public_ip}"
-    }
+    # host     = "${var.host_ip}"
+     host       = "${self.public_ip}"
+     }
   provisioner "remote-exec" {
     inline = [
-      "sudo yum update -y"
+      "sudo setenforce 0",
+      "sudo yum repolist",
+      
+      "echo _______________________installing_nginx_______________________",
+      "echo '${file("./files/nginx.repo")}' > ~/nginx.repo",
+      "sudo cp ~/nginx.repo /etc/yum.repos.d/nginx.repo",
+      "sudo yum install nginx -y",
+      "sudo systemctl start nginx",
+      "sudo systemctl enable nginx",
+
+      "echo _______________________installing_jenkins_______________________",
+      "sudo yum install java-1.8.0-openjdk.x86_64 -y",
+      "curl --silent --location http://pkg.jenkins-ci.org/redhat-stable/jenkins.repo | sudo tee /etc/yum.repos.d/jenkins.repo",
+      "sudo rpm --import https://jenkins-ci.org/redhat/jenkins-ci.org.key",
+      "sudo yum install jenkins -y",
+      "sudo systemctl start jenkins",
+      "sudo systemctl enable jenkins",
+  
+      "echo _______________________changing_nginx_settings_______________________",
+      "echo '${file("./files/proxy_pass.conf")}' > ~/proxy_pass.conf",
+      "sudo rm -f /etc/nginx/conf.d/default.conf",
+      "sudo cp ~/proxy_pass.conf /etc/nginx/conf.d/default.conf",
+      "sudo service nginx restart",
+      "echo _______________________HAPPY_END_______________________",
+
+
+        # "yum install wget -y",
+        # "wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo",
+        # "yum install jenkins -y",
+        # "yum install java-1.8.0-openjdk.x86_64",
+
     ]
   }
-  
+ #--- example of using file provisioner  ---#
+ provisioner "file" {
+    source      = "./files/test.config"
+    destination = "~/test.config"
+  }
+
   tags = {
     Name    = "Lab01Name"
     Project = "Lab01Project"
   }
 }
+
 #--- security_group ---#
 resource "aws_security_group" "lab01SecurityGroup" {
   name = "lab01 security group"
   ingress {
     from_port   = 22
     to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+    ingress {
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
