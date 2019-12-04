@@ -21,9 +21,23 @@ resource "aws_instance" "lab01" {
   delete_on_termination = true 
   }
   vpc_security_group_ids = ["${aws_security_group.lab01SecurityGroup.id}"]
-  
+
+  /* 
  #--- example of using user_data ---#
  # user_data = file("./files/update.sh")
+
+ #--- example of using file provisioner  ---#
+ provisioner "file" {
+    source      = "./files/test.config"
+    destination = "~/test.config"
+  }
+  */
+
+#--- example of using file content  ---#
+ provisioner "file" {
+    content = "${templatefile("./files/nginx.conf.tpl", {server_name = "${self.public_ip}"})}"
+    destination  =  "~/jenkins.conf"
+  }
 
 #--- provisioner ---#
 connection {
@@ -32,8 +46,7 @@ connection {
     # private_key = "${file("./key/voodookey.pem")}"
     private_key = "${file(var.private_key_path)}"
     # host     = "${aws_instance.lab01.public_ip}"
-    # host     = "${var.host_ip}"
-     host       = "${self.public_ip}"
+    host       = "${self.public_ip}"
      }
   provisioner "remote-exec" {
     inline = [
@@ -54,28 +67,23 @@ connection {
       "sudo yum install jenkins -y",
       "sudo systemctl start jenkins",
       "sudo systemctl enable jenkins",
-  
+
+      # "yum install wget -y",
+      # "wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo",
+      # "yum install jenkins -y",
+      # "yum install java-1.8.0-openjdk.x86_64",
+
       "echo _______________________changing_nginx_settings_______________________",
-      "echo '${file("./files/proxy_pass.conf")}' > ~/proxy_pass.conf",
-      "sudo rm -f /etc/nginx/conf.d/default.conf",
-      "sudo cp ~/proxy_pass.conf /etc/nginx/conf.d/default.conf",
+      #--- example of copying files in inline ---#
+      # "echo '${file("nginx.conf.tpl")}' > ~/nginx.conf.tpl",
+      "rm -f /etc/nginx/conf.d/default.conf",
+      "sudo cp ~/jenkins.conf /etc/nginx/conf.d/jenkins.conf",
       "sudo service nginx restart",
-      "echo _______________________HAPPY_END_______________________",
-
-
-        # "yum install wget -y",
-        # "wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo",
-        # "yum install jenkins -y",
-        # "yum install java-1.8.0-openjdk.x86_64",
-
+      "echo _______________________HAPPY_END_______________________"
     ]
   }
- #--- example of using file provisioner  ---#
- provisioner "file" {
-    source      = "./files/test.config"
-    destination = "~/test.config"
-  }
 
+ 
   tags = {
     Name    = "Lab01Name"
     Project = "Lab01Project"
