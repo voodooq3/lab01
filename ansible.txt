@@ -1,0 +1,50 @@
+===============================================================================
+voodoo@mgmt ansible]$ cat /etc/hosts
+192.168.200.20          mgmt
+37.57.*.*               centos01
+192.168.100.22          centos02
+192.168.100.23          centos03
+
+===============================================================================
+[voodoo@mgmt ansible]$ cat hosts.txt 
+[frontend]
+client01 ansible_host=centos01 ansible_user=voodoo ansible_ssh_private_key_file=~/.ssh/id_rsa
+
+[backend:vars]
+ansible_user=voodoo
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+ansible_ssh_common_args='-o ProxyCommand="ssh -W %h:%p -q voodoo@centos01"'
+
+[backend]
+client02 ansible_host=centos02
+client03 ansible_host=centos03
+
+===============================================================================
+[voodoo@mgmt ansible]$ cat ansible.cfg 
+[defaults]
+host_key_checking = False
+inventory = ./hosts.txt
+
+===============================================================================
+[voodoo@mgmt ansible]$ ansible all -i hosts.txt -m ping
+client01 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+client03 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+client02 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python"
+    },
+    "changed": false,
+    "ping": "pong"
+}
