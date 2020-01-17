@@ -4,9 +4,8 @@
 ansible_user : centos
 ansible_ssh_private_key_file : ~/.ssh/id_rsa
 
+
 ===============================================================================
-[voodoo@mgmt aws]$ cat playbook
-cat: playbook: No such file or directory
 [voodoo@mgmt aws]$ cat playbook.yml 
 ---
 - name: test connection
@@ -19,6 +18,7 @@ cat: playbook: No such file or directory
 
   - name: install vim
     yum: name=vim state=latest
+
 
 ===============================================================================
 [voodoo@mgmt aws]$ ansible-playbook -i ec2.py playbook.yml  
