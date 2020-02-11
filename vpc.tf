@@ -57,18 +57,14 @@ resource "aws_lb_target_group" "Lab01_Target_Group" {
 
 resource "aws_lb_listener" "Lab01_LB_listener" {
     load_balancer_arn = "${aws_lb.Lab01ALB.arn}"
-    # aws_lb_target_group ?????
     port = 80
     protocol = "HTTP"
 
-    default_action {
-        type = "fixed-response"
-        fixed_response {
-        content_type = "text/plain"
-        message_body = "404: We're All Gonna Die!!!"
-        status_code = 404
-        }
-    }
+   default_action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.Lab01_Target_Group.arn}"
+  }
+
 }
 
 #------- Attachment -------#

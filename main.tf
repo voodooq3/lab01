@@ -47,9 +47,9 @@ resource "aws_instance" "Bastion" {
   }
 }
 
+
 #------- RDS -------#
 resource "aws_db_instance" "mySQLDataBase" {
-  # name                 = "Lab01-mySQLDataBase"              
   allocated_storage    = 5
   storage_type         = "gp2"
   engine               = "mysql"
@@ -63,7 +63,6 @@ resource "aws_db_instance" "mySQLDataBase" {
   db_subnet_group_name   = "${aws_db_subnet_group.RDS_subnet_group.name}"
   skip_final_snapshot  = true
 }
-
 
 
 /*********************************************************
