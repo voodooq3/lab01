@@ -24,14 +24,11 @@ resource "aws_internet_gateway" "Gateway_Lab01" {
 resource "aws_lb" "Lab01ALB" {  
   name            = "Lab01ALB"
   load_balancer_type = "application"
-  subnets         = ["${aws_subnet.Private_Subnet_a.id}","${aws_subnet.Private_Subnet_b.id}"]
+  subnets         = ["${aws_subnet.Public_Subnet_a.id}","${aws_subnet.Public_Subnet_b.id}"]
   security_groups = ["${aws_security_group.LB_Security_Group.id}"]
   internal        = false 
-  # idle_timeout    = 60   
-  # tags {    
-  #   Name    = "Lab01_LB"    
-  # }   
 }
+
 #------- Target Group -------#
 resource "aws_lb_target_group" "Lab01_Target_Group" {  
   name     = "Lab01-Target-Group"
@@ -39,15 +36,11 @@ resource "aws_lb_target_group" "Lab01_Target_Group" {
   protocol = "HTTP"  
   target_type = "instance"
   vpc_id   = "${aws_vpc.VPC_Lab01.id}"
-  # target_type 
-  # tags {    
-  #   name = "Lab01 Auto Scaling Groupe"    
-  # }   
 
   health_check {
         path = "/"
         protocol = "HTTP"
-        matcher = "200"
+        matcher = "200-299"
         interval = 15
         timeout = 3
         healthy_threshold = 2
@@ -57,14 +50,13 @@ resource "aws_lb_target_group" "Lab01_Target_Group" {
 
 resource "aws_lb_listener" "Lab01_LB_listener" {
     load_balancer_arn = "${aws_lb.Lab01ALB.arn}"
-    port = 80
+    port = "80"
     protocol = "HTTP"
 
    default_action {
     type             = "forward"
     target_group_arn = "${aws_lb_target_group.Lab01_Target_Group.arn}"
   }
-
 }
 
 #------- Attachment -------#
