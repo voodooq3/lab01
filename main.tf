@@ -28,10 +28,6 @@ resource "aws_instance" "Bastion" {
     private_key = "${file(var.private_key_path)}"
     host       = "${self.public_ip}"
      }
-  provisioner "file" {
-    source      = "./key/voodookey.pem"
-    destination = "~/.ssh/id_rsa"
-  }
 
    user_data = <<-EOF
               #!/bin/bash
