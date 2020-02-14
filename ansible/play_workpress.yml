@@ -1,0 +1,96 @@
+
+# ansible-playbook -i ec2.py -l tag_Name_Lab01_autoscale_group play_workpress.yml 
+# http:/wp.voodoo.link/wordpress/wp-admin/
+
+ ######### Let's Roll #########
+- name: Let's Roll
+  hosts: tag_Name_Lab01_autoscale_group
+  become: true
+
+  ######## vars ########
+  vars:
+    wordpress_database: wordpress
+    wordpress_user: sqluser
+    wordpress_password: g0fDh5fg0Hhk
+
+    wordpress_repository:
+      - epel-release
+
+    wordpress_packages:
+      - php
+      - php-xml
+      - php-mysql
+      - wordpress
+      - unzip  
+      - mc     
+
+    wds_httpd_conf: '/etc/httpd/conf.d/wordpress.conf'
+    wd_conf: '/etc/wordpress/wp-config.php'
+    wordpress_directory: '/usr/share/wordpress'
+    wordpress_force_ssl: false
+    wordpress_allow_file_mods: true
+    wordpress_automatic_updates: true
+    wordpress_debug: false
+
+  ######## tasks ########
+  tasks:
+
+  - name: SELinux is permissive 
+    selinux:
+      policy: targeted
+      state: permissive
+ 
+  - name: Wordpress repository
+    package:
+      name: "{{ item }}"
+      state: installed
+    with_items: "{{ wordpress_repository }}"
+    tags: wordpress
+
+  - name: Install 
+    package:
+      name: "{{ item }}"
+      state: installed
+    with_items: "{{ wordpress_packages }}"
+    tags: wordpress
+
+  - name: Apache config
+    template:
+      src: ./files/wordpress.conf.j2
+      dest: "{{ wds_httpd_conf }}"
+      owner: root
+      group: root
+      mode: '0644'
+      setype: httpd_config_t
+    notify: restart httpd
+    tags: wordpress
+
+  - name: Wordpress config
+    template:
+      src: ./files/wp-config.php.j2
+      dest: "{{ wd_conf }}"
+      owner: root
+      group: apache
+      mode: '0640'
+      setype: etc_t
+    notify: restart httpd
+    tags: wordpress
+
+  - name: httpd systemd
+    systemd:
+      name: httpd
+      enabled: yes
+      state: restarted
+
+
+  ######## handlers ########
+  handlers:
+    - name: restart httpd
+      service:
+        name: httpd
+        state: restarted
+
+
+# #▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼#
+# ######################## The End ########################
+# #▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲#

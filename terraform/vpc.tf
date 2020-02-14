@@ -24,14 +24,11 @@ resource "aws_internet_gateway" "Gateway_Lab01" {
 resource "aws_lb" "Lab01ALB" {  
   name            = "Lab01ALB"
   load_balancer_type = "application"
-  subnets         = ["${aws_subnet.Private_Subnet_a.id}","${aws_subnet.Private_Subnet_b.id}"]
+  subnets         = ["${aws_subnet.Public_Subnet_a.id}","${aws_subnet.Public_Subnet_b.id}"]
   security_groups = ["${aws_security_group.LB_Security_Group.id}"]
   internal        = false 
-  # idle_timeout    = 60   
-  # tags {    
-  #   Name    = "Lab01_LB"    
-  # }   
 }
+
 #------- Target Group -------#
 resource "aws_lb_target_group" "Lab01_Target_Group" {  
   name     = "Lab01-Target-Group"
@@ -39,15 +36,11 @@ resource "aws_lb_target_group" "Lab01_Target_Group" {
   protocol = "HTTP"  
   target_type = "instance"
   vpc_id   = "${aws_vpc.VPC_Lab01.id}"
-  # target_type 
-  # tags {    
-  #   name = "Lab01 Auto Scaling Groupe"    
-  # }   
 
   health_check {
         path = "/"
         protocol = "HTTP"
-        matcher = "200"
+        matcher = "200-299"
         interval = 15
         timeout = 3
         healthy_threshold = 2
@@ -57,17 +50,13 @@ resource "aws_lb_target_group" "Lab01_Target_Group" {
 
 resource "aws_lb_listener" "Lab01_LB_listener" {
     load_balancer_arn = "${aws_lb.Lab01ALB.arn}"
-    port = 80
+    port = "80"
     protocol = "HTTP"
 
-    default_action {
-        type = "fixed-response"
-        fixed_response {
-        content_type = "text/plain"
-        message_body = "404: We're All Gonna Die!!!"
-        status_code = 404
-        }
-    }
+   default_action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.Lab01_Target_Group.arn}"
+  }
 }
 
 #------- Attachment -------#
@@ -115,17 +104,16 @@ resource "aws_eip" "EIP_Lab01" {
     Name = "EIP Lab01"
   }
 }
-
-#------- NAT gateway -------#
+#▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼#
+#------- NAT gateway -------#                               
 resource "aws_nat_gateway" "Nat_Gateway_Lab01" {
   allocation_id = "${aws_eip.EIP_Lab01.id}"
   subnet_id     =  "${aws_subnet.Public_Subnet_a.id}"
-
   tags = {
     Name = "Nat Gateway Lan01"
   }
-
 }
+#▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲#
 
 #------- Public and Private Subnets -------#
 resource "aws_subnet" "Public_Subnet_a" {
@@ -176,14 +164,18 @@ resource "aws_route_table" "Public_Route_Table" {
     Name = "Public Route Table"
   }
 }
-
+#▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼#
 resource "aws_route_table" "Private_Route_Table" {
   vpc_id = "${aws_vpc.VPC_Lab01.id}"
+  route {
+    cidr_block = "0.0.0.0/0"
+    nat_gateway_id = "${aws_nat_gateway.Nat_Gateway_Lab01.id}"
+   }
   tags = {
     Name = "Private Route Table"
   }
 }
-
+#▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲#
 
 #------- Default route to Internet -------#
 resource "aws_route" "Public_Route" {
@@ -201,6 +193,7 @@ resource "aws_route_table_association" "Public_Subnet_Association_b" {
   subnet_id      = "${aws_subnet.Public_Subnet_b.id}"
   route_table_id = "${aws_route_table.Public_Route_Table.id}"
 }
+#▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼#
 resource "aws_route_table_association" "Private_Subnet_Association_a" {
   subnet_id      = "${aws_subnet.Private_Subnet_a.id}"
   route_table_id = "${aws_route_table.Private_Route_Table.id}"
@@ -209,20 +202,25 @@ resource "aws_route_table_association" "Private_Subnet_Association_b" {
   subnet_id      = "${aws_subnet.Private_Subnet_b.id}"
   route_table_id = "${aws_route_table.Private_Route_Table.id}"
 }
+#▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲#
 
 #------- Security Groups -------#
 resource "aws_security_group" "LB_Security_Group" {
   name   = "Lab01 LB security group"
   vpc_id = "${aws_vpc.VPC_Lab01.id}"
   
-  
-  ingress {
+    ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
+    ingress {
+    from_port   = -1
+    to_port     = -1
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
   egress {
     from_port   = 0
     to_port     = 0
@@ -244,8 +242,25 @@ resource "aws_security_group" "ASG_Security_Group" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-    egress {
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["${var.vpc_cidr_public_a}"]
+  }
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["${var.vpc_cidr_public_b}"]
+  }
+  ingress {
+    from_port   = -1
+    to_port     = -1
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -267,7 +282,12 @@ resource "aws_security_group" "Bastion_Security_Group" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
+  ingress {
+    from_port   = -1
+    to_port     = -1
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
   egress {
     from_port   = 0
     to_port     = 0
@@ -278,7 +298,6 @@ resource "aws_security_group" "Bastion_Security_Group" {
     Name = "Lab01 Bastion Security Group"
   }
 }
-
 
 resource "aws_security_group" "DB_Security_Group" {
   name   = "Lab01 DB security group"
@@ -295,6 +314,12 @@ resource "aws_security_group" "DB_Security_Group" {
     to_port     = 3306
     protocol    = "tcp"
     cidr_blocks = ["${var.vpc_cidr_private_b}"]
+  }
+  ingress {
+    from_port   = -1
+    to_port     = -1
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
   egress {
     from_port   = 0
@@ -319,5 +344,6 @@ resource "aws_db_subnet_group" "RDS_subnet_group" {
   }
 }
 
-
-######### The End #########
+# #▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼#
+# ######################## The End ########################
+# #▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲#
