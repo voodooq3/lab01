@@ -80,6 +80,15 @@ resource "aws_route53_record" "voodoo_link" {
   records = ["${aws_lb.Lab01ALB.dns_name}"]
 }
 
+resource "null_resource" "ansible-deploy" {
+  provisioner "local-exec" {
+    command = <<EOT
+    cd ../ansible
+    sleep 240
+    ansible-playbook -i ec2.py -l tag_Name_Lab01_autoscale_group play_workpress.yml
+    EOT
+  }
+}
 
 # #▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼#
 # ######################## The End ########################
